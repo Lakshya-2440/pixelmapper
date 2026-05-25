@@ -1,0 +1,14 @@
+services:
+  pixelmapper:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      DATABASE_PATH: /data/pixelmapper.db
+      FRONTEND_DIST: /app/frontend/dist
+    volumes:
+      - pixelmapper-data:/data
+
+volumes:
+  pixelmapper-data:
