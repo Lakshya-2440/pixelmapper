@@ -2,6 +2,9 @@
 
 Meta Pixel user tracking and ad targeting MVP.
 
+Live app: https://pixelmapper.onrender.com
+GitHub repo: https://github.com/Lakshya-2440/pixelmapper
+
 ## What ships
 
 - Go backend with SQLite persistence
