@@ -12,24 +12,25 @@ import (
 
 	"pixelmapper/backend/handlers"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "modernc.org/sqlite"
 )
 
-//go:embed db/schema.sql
+//go:embed db/schema.sql db/schema_postgres.sql
 var schemaFS embed.FS
 
 func main() {
-	db, err := openDB()
+	db, driver, err := openDB()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	if err := migrate(db); err != nil {
+	if err := migrate(db, driver); err != nil {
 		log.Fatal(err)
 	}
 
-	app := handlers.NewApp(db)
+	app := handlers.NewApp(db, driver)
 	mux := http.NewServeMux()
 	app.Register(mux)
 	mux.Handle("/", spaHandler())
@@ -41,21 +42,33 @@ func main() {
 	}
 }
 
-func openDB() (*sql.DB, error) {
+func openDB() (*sql.DB, string, error) {
+	if databaseURL := strings.TrimSpace(os.Getenv("DATABASE_URL")); databaseURL != "" {
+		db, err := sql.Open("pgx", databaseURL)
+		if err != nil {
+			return nil, "", err
+		}
+		return db, "postgres", db.Ping()
+	}
+
 	path := getenv("DATABASE_PATH", filepath.Join(".", "pixelmapper.db"))
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil && filepath.Dir(path) != "." {
-		return nil, err
+		return nil, "", err
 	}
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	db.SetMaxOpenConns(1)
-	return db, nil
+	return db, "sqlite", nil
 }
 
-func migrate(db *sql.DB) error {
-	schema, err := schemaFS.ReadFile("db/schema.sql")
+func migrate(db *sql.DB, driver string) error {
+	schemaPath := "db/schema.sql"
+	if driver == "postgres" {
+		schemaPath = "db/schema_postgres.sql"
+	}
+	schema, err := schemaFS.ReadFile(schemaPath)
 	if err != nil {
 		return err
 	}

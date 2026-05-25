@@ -7,15 +7,17 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
 type App struct {
-	DB *sql.DB
+	DB     *sql.DB
+	Driver string
 }
 
-func NewApp(db *sql.DB) *App {
-	return &App{DB: db}
+func NewApp(db *sql.DB, driver string) *App {
+	return &App{DB: db, Driver: driver}
 }
 
 func (a *App) Register(mux *http.ServeMux) {
@@ -89,6 +91,13 @@ func optionalString(ns sql.NullString) string {
 		return ""
 	}
 	return ns.String
+}
+
+func (a *App) bind(index int) string {
+	if a.Driver == "postgres" {
+		return "$" + strconv.Itoa(index)
+	}
+	return "?"
 }
 
 func validatePixelID(pixelID string) error {

@@ -18,15 +18,15 @@ func (a *App) ListEvents(w http.ResponseWriter, r *http.Request) {
 	args := make([]any, 0)
 
 	if pixelID := strings.TrimSpace(r.URL.Query().Get("pixel_id")); pixelID != "" {
-		query += " AND e.pixel_id = ?"
+		query += " AND e.pixel_id = " + a.bind(len(args)+1)
 		args = append(args, pixelID)
 	}
 	if from := strings.TrimSpace(r.URL.Query().Get("from")); from != "" {
-		query += " AND e.created_at >= ?"
+		query += " AND e.created_at >= " + a.bind(len(args)+1)
 		args = append(args, from)
 	}
 	if to := strings.TrimSpace(r.URL.Query().Get("to")); to != "" {
-		query += " AND e.created_at <= ?"
+		query += " AND e.created_at <= " + a.bind(len(args)+1)
 		args = append(args, to+" 23:59:59")
 	}
 	query += " ORDER BY e.created_at DESC LIMIT 500"

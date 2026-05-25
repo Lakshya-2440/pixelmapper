@@ -23,7 +23,7 @@ func (a *App) Track(w http.ResponseWriter, r *http.Request) {
 
 	var pixelID string
 	var label, redirectURL sql.NullString
-	err := a.DB.QueryRow(`SELECT pixel_id, label, redirect_url FROM tracking_links WHERE token = ?`, token).Scan(&pixelID, &label, &redirectURL)
+	err := a.DB.QueryRow(`SELECT pixel_id, label, redirect_url FROM tracking_links WHERE token = `+a.bind(1), token).Scan(&pixelID, &label, &redirectURL)
 	if errors.Is(err, sql.ErrNoRows) {
 		http.NotFound(w, r)
 		return
@@ -34,7 +34,7 @@ func (a *App) Track(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = a.DB.Exec(
-		`INSERT INTO tracked_events (token, pixel_id, uid, email, ip, user_agent) VALUES (?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO tracked_events (token, pixel_id, uid, email, ip, user_agent) VALUES (`+a.bind(1)+`, `+a.bind(2)+`, `+a.bind(3)+`, `+a.bind(4)+`, `+a.bind(5)+`, `+a.bind(6)+`)`,
 		token,
 		pixelID,
 		nullable(r.URL.Query().Get("uid")),

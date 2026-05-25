@@ -7,7 +7,7 @@ GitHub repo: https://github.com/Lakshya-2440/pixelmapper
 
 ## What ships
 
-- Go backend with SQLite persistence
+- Go backend with PostgreSQL in production and SQLite fallback locally
 - React/Vite dashboard
 - Tracking link creation
 - `GET /t/{token}` logs visit signals and serves Meta Pixel PageView HTML
@@ -73,6 +73,6 @@ Open `http://localhost:8080`.
 
 ## Notes
 
-- SQLite is used for MVP simplicity. Render disk keeps data persistent.
+- Set `DATABASE_URL` to use PostgreSQL. If unset, the backend uses local SQLite for MVP simplicity.
 - Meta Pixel fires client-side from tracking page via standard `fbq('init', pixel_id)` and `fbq('track', 'PageView')`.
 - No auth is included per MVP scope. Add admin auth before real customer usage.

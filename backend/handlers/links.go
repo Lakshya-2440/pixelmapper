@@ -35,14 +35,14 @@ func (a *App) CreateLink(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	token, err := uniqueToken(a.DB)
+	token, err := a.uniqueToken()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "could not generate token")
 		return
 	}
 
 	_, err = a.DB.Exec(
-		`INSERT INTO tracking_links (token, pixel_id, label, redirect_url) VALUES (?, ?, ?, ?)`,
+		`INSERT INTO tracking_links (token, pixel_id, label, redirect_url) VALUES (`+a.bind(1)+`, `+a.bind(2)+`, `+a.bind(3)+`, `+a.bind(4)+`)`,
 		token, req.PixelID, nullable(req.Label), nullable(req.RedirectURL),
 	)
 	if err != nil {
@@ -58,10 +58,13 @@ func (a *App) CreateLink(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) ListLinks(w http.ResponseWriter, r *http.Request) {
 	rows, err := a.DB.Query(`
-		SELECT l.id, l.token, l.pixel_id, l.label, l.redirect_url, l.created_at, COUNT(e.id) AS event_count
+		SELECT l.id, l.token, l.pixel_id, l.label, l.redirect_url, l.created_at, COALESCE(ec.event_count, 0) AS event_count
 		FROM tracking_links l
-		LEFT JOIN tracked_events e ON e.token = l.token
-		GROUP BY l.id
+		LEFT JOIN (
+			SELECT token, COUNT(*) AS event_count
+			FROM tracked_events
+			GROUP BY token
+		) ec ON ec.token = l.token
 		ORDER BY l.created_at DESC
 	`)
 	if err != nil {
@@ -87,14 +90,14 @@ func (a *App) ListLinks(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, links)
 }
 
-func uniqueToken(db *sql.DB) (string, error) {
+func (a *App) uniqueToken() (string, error) {
 	for range 8 {
 		token, err := randomToken()
 		if err != nil {
 			return "", err
 		}
 		var exists int
-		err = db.QueryRow(`SELECT 1 FROM tracking_links WHERE token = ?`, token).Scan(&exists)
+		err = a.DB.QueryRow(`SELECT 1 FROM tracking_links WHERE token = `+a.bind(1), token).Scan(&exists)
 		if errors.Is(err, sql.ErrNoRows) {
 			return token, nil
 		}
