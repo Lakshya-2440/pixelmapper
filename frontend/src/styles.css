@@ -277,6 +277,10 @@ input:focus {
   overflow-wrap: anywhere;
 }
 
+td.mono {
+  white-space: nowrap;
+}
+
 .table-wrap {
   overflow: auto;
   max-height: calc(100vh - 260px);
@@ -284,7 +288,7 @@ input:focus {
 
 table {
   width: 100%;
-  min-width: 920px;
+  min-width: 1080px;
   border-collapse: collapse;
 }
 
