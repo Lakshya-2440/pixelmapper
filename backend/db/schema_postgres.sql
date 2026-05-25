@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS tracked_events (
   id BIGSERIAL PRIMARY KEY,
   token VARCHAR(64) NOT NULL,
   pixel_id VARCHAR(64) NOT NULL,
+  profile_id BIGINT,
   uid TEXT,
   email TEXT,
   ip TEXT,
@@ -21,3 +22,13 @@ CREATE TABLE IF NOT EXISTS tracked_events (
 CREATE INDEX IF NOT EXISTS idx_tracked_events_token ON tracked_events(token);
 CREATE INDEX IF NOT EXISTS idx_tracked_events_pixel_id ON tracked_events(pixel_id);
 CREATE INDEX IF NOT EXISTS idx_tracked_events_created_at ON tracked_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_tracked_events_profile_id ON tracked_events(profile_id);
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id BIGSERIAL PRIMARY KEY,
+  uid TEXT,
+  email TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  last_seen TIMESTAMPTZ DEFAULT NOW(),
+  last_synced TIMESTAMPTZ
+);

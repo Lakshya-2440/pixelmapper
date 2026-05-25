@@ -25,6 +25,9 @@ func (a *App) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/links", a.CreateLink)
 	mux.HandleFunc("GET /api/links", a.ListLinks)
 	mux.HandleFunc("GET /api/events", a.ListEvents)
+	mux.HandleFunc("GET /api/profiles", a.ListProfiles)
+	mux.HandleFunc("POST /api/profiles/{id}/sync", a.SyncProfile)
+	mux.HandleFunc("POST /api/profiles/sync_all", a.SyncAllProfiles)
 	mux.HandleFunc("GET /t/{token}", a.Track)
 }
 

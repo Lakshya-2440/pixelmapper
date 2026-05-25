@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, Copy, ExternalLink, Link2, Plus, RefreshCw, Search, Send } from 'lucide-react'
-import { getEvents, getLinks } from '../api.js'
+import { getEvents, getLinks, getProfiles, syncProfile, syncAllProfiles } from '../api.js'
 import EventsTable from '../components/EventsTable.jsx'
 import LinkModal from '../components/LinkModal.jsx'
 
@@ -12,14 +12,17 @@ export default function Dashboard() {
   const [error, setError] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [copied, setCopied] = useState('')
+  const [profiles, setProfiles] = useState([])
+  const [profilesLoading, setProfilesLoading] = useState(false)
 
   async function load() {
     setLoading(true)
     setError('')
     try {
-      const [nextLinks, nextEvents] = await Promise.all([getLinks(), getEvents(filters)])
+      const [nextLinks, nextEvents, nextProfiles] = await Promise.all([getLinks(), getEvents(filters), getProfiles()])
       setLinks(nextLinks)
       setEvents(nextEvents)
+      setProfiles(nextProfiles)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -48,6 +51,32 @@ export default function Dashboard() {
     await navigator.clipboard.writeText(value)
     setCopied(value)
     setTimeout(() => setCopied(''), 1400)
+  }
+
+  async function handleSyncProfile(id) {
+    try {
+      setProfilesLoading(true)
+      await syncProfile(id)
+      const next = await getProfiles()
+      setProfiles(next)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setProfilesLoading(false)
+    }
+  }
+
+  async function handleSyncAll() {
+    try {
+      setProfilesLoading(true)
+      await syncAllProfiles()
+      const next = await getProfiles()
+      setProfiles(next)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setProfilesLoading(false)
+    }
   }
 
   function updateFilter(key, value) {
@@ -112,6 +141,32 @@ export default function Dashboard() {
                     <ExternalLink size={16} />
                   </a>
                   <span className="copy-note">{copied === link.tracking_url ? 'Copied' : link.token}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="panel-heading" style={{ marginTop: 18 }}>
+            <h2>Profiles</h2>
+            <div>
+              <button className="ghost-button" type="button" onClick={handleSyncAll} disabled={profilesLoading}>
+                Sync All
+              </button>
+            </div>
+          </div>
+          <div className="profile-list">
+            {profiles.length === 0 ? <div className="empty-state">No profiles yet.</div> : null}
+            {profiles.map((p) => (
+              <article className="link-card" key={p.id}>
+                <div className="link-card-top">
+                  <strong>{p.uid || p.email || 'Anonymous'}</strong>
+                  <span>{p.last_seen ? new Date(p.last_seen).toLocaleString() : ''}</span>
+                </div>
+                <div className="mono">{p.email || '-'}</div>
+                <div className="link-actions">
+                  <button className="icon-button" type="button" onClick={() => handleSyncProfile(p.id)} disabled={profilesLoading} title="Sync profile">
+                    <RefreshCw size={16} />
+                  </button>
+                  <span className="copy-note">{p.last_synced ? `Synced ${new Date(p.last_synced).toLocaleString()}` : 'Not synced'}</span>
                 </div>
               </article>
             ))}

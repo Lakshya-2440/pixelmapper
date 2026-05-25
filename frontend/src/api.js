@@ -21,6 +21,20 @@ export function getLinks() {
   return request('/api/links')
 }
 
+export function getProfiles() {
+  return request('/api/profiles')
+}
+
+export function syncProfile(id) {
+  return request(`/api/profiles/${id}/sync`, {
+    method: 'POST',
+  })
+}
+
+export function syncAllProfiles() {
+  return request(`/api/profiles/sync_all`, { method: 'POST' })
+}
+
 export function getEvents(filters) {
   const params = new URLSearchParams()
   Object.entries(filters).forEach(([key, value]) => {

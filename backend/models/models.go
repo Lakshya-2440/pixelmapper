@@ -18,11 +18,21 @@ type TrackedEvent struct {
 	Token     string    `json:"token"`
 	PixelID   string    `json:"pixel_id"`
 	Label     string    `json:"label"`
+	ProfileID int64     `json:"profile_id,omitempty"`
 	UID       string    `json:"uid"`
 	Email     string    `json:"email"`
 	IP        string    `json:"ip"`
 	UserAgent string    `json:"user_agent"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type UserProfile struct {
+	ID        int64     `json:"id"`
+	UID       string    `json:"uid"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
+	LastSeen  time.Time `json:"last_seen"`
+	LastSynced time.Time `json:"last_synced,omitempty"`
 }
 
 type CreateLinkRequest struct {

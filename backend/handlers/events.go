@@ -10,7 +10,7 @@ import (
 
 func (a *App) ListEvents(w http.ResponseWriter, r *http.Request) {
 	query := `
-		SELECT e.id, e.token, e.pixel_id, l.label, e.uid, e.email, e.ip, e.user_agent, e.created_at
+		SELECT e.id, e.token, e.pixel_id, l.label, e.profile_id, e.uid, e.email, e.ip, e.user_agent, e.created_at
 		FROM tracked_events e
 		LEFT JOIN tracking_links l ON l.token = e.token
 		WHERE 1 = 1
@@ -42,11 +42,13 @@ func (a *App) ListEvents(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var event models.TrackedEvent
 		var label, uid, email, ip, userAgent sql.NullString
-		if err := rows.Scan(&event.ID, &event.Token, &event.PixelID, &label, &uid, &email, &ip, &userAgent, &event.CreatedAt); err != nil {
+		var profileID sql.NullInt64
+		if err := rows.Scan(&event.ID, &event.Token, &event.PixelID, &label, &profileID, &uid, &email, &ip, &userAgent, &event.CreatedAt); err != nil {
 			writeError(w, http.StatusInternalServerError, "could not scan events")
 			return
 		}
 		event.Label = optionalString(label)
+		event.ProfileID = profileID.Int64
 		event.UID = optionalString(uid)
 		event.Email = optionalString(email)
 		event.IP = optionalString(ip)

@@ -76,3 +76,13 @@ Open `http://localhost:8080`.
 - Set `DATABASE_URL` to use PostgreSQL. If unset, the backend uses local SQLite for MVP simplicity.
 - Meta Pixel fires client-side from tracking page via standard `fbq('init', pixel_id)` and `fbq('track', 'PageView')`.
 - No auth is included per MVP scope. Add admin auth before real customer usage.
+
+Server-side audience sync (optional):
+- To enable server-side sync to Facebook Conversions API, set these environment variables:
+
+```
+FACEBOOK_PIXEL_ID=123456789012345
+FACEBOOK_ACCESS_TOKEN=EAAX... (app access token)
+```
+
+When configured, you can sync individual profiles from dashboard or call `POST /api/profiles/{id}/sync`.

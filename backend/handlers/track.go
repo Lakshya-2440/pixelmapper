@@ -5,6 +5,7 @@ import (
 	"errors"
 	"html/template"
 	"net/http"
+	"strings"
 )
 
 type trackPageData struct {
@@ -33,12 +34,22 @@ func (a *App) Track(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// attempt to map event to a stable user profile
+	uid := strings.TrimSpace(r.URL.Query().Get("uid"))
+	email := strings.TrimSpace(r.URL.Query().Get("email"))
+	profileID, err := a.getOrCreateProfile(uid, email)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not resolve profile")
+		return
+	}
+
 	_, err = a.DB.Exec(
-		`INSERT INTO tracked_events (token, pixel_id, uid, email, ip, user_agent) VALUES (`+a.bind(1)+`, `+a.bind(2)+`, `+a.bind(3)+`, `+a.bind(4)+`, `+a.bind(5)+`, `+a.bind(6)+`)`,
+		`INSERT INTO tracked_events (token, pixel_id, profile_id, uid, email, ip, user_agent) VALUES (`+a.bind(1)+`, `+a.bind(2)+`, `+a.bind(3)+`, `+a.bind(4)+`, `+a.bind(5)+`, `+a.bind(6)+`, `+a.bind(7)+`)`,
 		token,
 		pixelID,
-		nullable(r.URL.Query().Get("uid")),
-		nullable(r.URL.Query().Get("email")),
+		nullableInt64(profileID),
+		nullable(uid),
+		nullable(email),
 		clientIP(r),
 		r.UserAgent(),
 	)
@@ -55,6 +66,49 @@ func (a *App) Track(w http.ResponseWriter, r *http.Request) {
 		Label:       optionalString(label),
 		RedirectURL: optionalString(redirectURL),
 	})
+}
+
+func (a *App) getOrCreateProfile(uid, email string) (int64, error) {
+	if uid == "" && email == "" {
+		return 0, nil
+	}
+
+	var id int64
+	// try find by uid first, then email
+	row := a.DB.QueryRow(`SELECT id FROM user_profiles WHERE uid = `+a.bind(1)+` LIMIT 1`, uid)
+	if err := row.Scan(&id); err == nil {
+		// update last_seen
+		_, _ = a.DB.Exec(`UPDATE user_profiles SET last_seen = CURRENT_TIMESTAMP WHERE id = `+a.bind(1), id)
+		return id, nil
+	}
+	if email != "" {
+		row = a.DB.QueryRow(`SELECT id FROM user_profiles WHERE email = `+a.bind(1)+` LIMIT 1`, email)
+		if err := row.Scan(&id); err == nil {
+			_, _ = a.DB.Exec(`UPDATE user_profiles SET last_seen = CURRENT_TIMESTAMP WHERE id = `+a.bind(1), id)
+			return id, nil
+		}
+	}
+
+	// create new profile
+	res, err := a.DB.Exec(`INSERT INTO user_profiles (uid, email, last_seen) VALUES (`+a.bind(1)+`, `+a.bind(2)+`, CURRENT_TIMESTAMP)`, nullable(uid), nullable(email))
+	if err != nil {
+		return 0, err
+	}
+	if a.Driver == "postgres" {
+		var lastID int64
+		err = a.DB.QueryRow(`SELECT currval(pg_get_serial_sequence('user_profiles','id'))`).Scan(&lastID)
+		if err == nil {
+			return lastID, nil
+		}
+	}
+	return res.LastInsertId()
+}
+
+func nullableInt64(v int64) any {
+	if v == 0 {
+		return nil
+	}
+	return v
 }
 
 var trackTemplate = template.Must(template.New("track").Parse(`<!doctype html>
